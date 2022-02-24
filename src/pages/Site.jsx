@@ -18,7 +18,7 @@ function Site() {
   let [title, setTitle] = useState(queryParams.get('title'));
   let initialText = queryParams.get('text');
   
-  let [text, setText] = useState(getArticleTemplate() + initialText);
+  let [text, setText] = useState(initialText);
 
   useEffect(() => {
     initArticle();

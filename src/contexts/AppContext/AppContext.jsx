@@ -1,9 +1,11 @@
-import React, { createContext, useState, useRef } from 'react';
+import React, { createContext, useState, useRef, useCallback } from 'react';
 import { useNavigate } from "react-router-dom";
 import OpenAI from 'openai-api';
 
 import formatResults from '../../utils/formatResults';
 import { SearchTemplate, ArticleTemplate } from '../../utils/templates';
+
+const AA = true;
 
 const AppContext = createContext();
 
@@ -24,32 +26,67 @@ const AppContextProvider = ({ children }) => {
   };
 
   const generateArticleText = async (text) => {
-    let gptResponse;
+    let response;
     
     setIsLoadingArticle(true);
 
-    try {
-      gptResponse = await openai.complete({
-        engine: 'davinci-instruct-beta-v3',
-        prompt: text.trim(),
-        maxTokens: 500,
-        temperature: 0.7,
-        topP: 1,
-        presencePenalty: 0,
-        frequencyPenalty: 2,
-        bestOf: 1,
-        n: 1,
-        stream: false
-      });
-  
-      console.log(gptResponse.data.choices[0].text);
-  
-      setIsLoadingArticle(false);
-  
-      return gptResponse.data.choices[0].text;
-    } catch (error) {
-      alert('There are problems accessing the API');
-      window.location.href = '/';
+    if (AA) {
+
+      console.log('generateArticleText: ', text.trim());
+
+      var params = {
+        "model": "luminous-base",
+        "prompt": text.trim(),
+        "maximum_tokens": 500,
+        "temperature": 0.2,
+        "top_k": 0,
+        "top_p": 0,
+        "frequency_penalty": 1,
+          };
+
+      try{
+
+        response = JSON.parse(await aa_complete(params));
+        
+        lastResultsString.current = response.completions[0].completion;
+
+        setIsLoadingResults(false);
+
+        return response.completions[0].completion;
+
+      } catch (error) {
+        console.log(error);
+        console.log(response)
+        alert('There are problems accessing the API');
+        window.location.href = '/';
+      }      
+
+    }
+    else {
+
+      try {
+        response = await openai.complete({
+          engine: 'davinci-instruct-beta-v3',
+          prompt: text.trim(),
+          maxTokens: 500,
+          temperature: 0.7,
+          topP: 1,
+          presencePenalty: 0,
+          frequencyPenalty: 2,
+          bestOf: 1,
+          n: 1,
+          stream: false
+        });
+    
+        console.log(response.data.choices[0].text);
+    
+        setIsLoadingArticle(false);
+    
+        return response.data.choices[0].text;
+      } catch (error) {
+        alert('There are problems accessing the API');
+        window.location.href = '/';
+      }
     }
   };
 
@@ -58,36 +95,103 @@ const AppContextProvider = ({ children }) => {
 
     const query = getSearchTemplate() + searchTerm + '\n\n{' + lastResults;
 
-    let gptResponse;
+    let response;
 
     setIsLoadingResults(true);
 
-    try {
-      gptResponse = await openai.complete({
-        engine: 'davinci-instruct-beta-v3',
-        prompt: query,
-        maxTokens: 1000,
-        temperature: 1,
-        topP: 1,
-        presencePenalty: 0,
-        frequencyPenalty: 2,
-        bestOf: 1,
-        n: 1,
-        stream: false,
-        stop: ['"""']
-      });
+    if (AA) {
 
-      //console.log(gptResponse.data.choices[0].text);
-      
-      lastResultsString.current = gptResponse.data.choices[0].text;
+      var params = {
+        "model": "luminous-base",
+        "prompt": query,
+        "maximum_tokens": 128,
+        "temperature": 0.2,
+        "top_k": 0,
+        "top_p": 0,
+        "frequency_penalty": 1,
+          };
 
-      setIsLoadingResults(false);
+      try{
 
-      return gptResponse.data.choices[0].text;
-    } catch (error) {
-      alert('There are problems accessing the API');
-      window.location.href = '/';
+        response = JSON.parse(await aa_complete(params));
+        
+        lastResultsString.current = response.completions[0].completion;
+
+        setIsLoadingResults(false);
+
+        return response.completions[0].completion;
+
+      } catch (error) {
+        console.log(error);
+        console.log(response)
+        alert('There are problems accessing the API');
+        window.location.href = '/';
+      }
+    
+
     }
+    else {
+
+      try {
+        response = await openai.complete({
+          engine: 'davinci-instruct-beta-v3',
+          prompt: query,
+          maxTokens: 1000,
+          temperature: 1,
+          topP: 1,
+          presencePenalty: 0,
+          frequencyPenalty: 2,
+          bestOf: 1,
+          n: 1,
+          stream: false,
+          stop: ['"""']
+        });
+
+        //console.log(gptResponse.data.choices[0].text);
+        
+        lastResultsString.current = response.data.choices[0].text;
+
+        setIsLoadingResults(false);
+
+        return response.data.choices[0].text;
+      } catch (error) {
+        alert('There are problems accessing the API');
+        window.location.href = '/';
+      }
+    }
+  };
+
+  //calls the Aleph-Alpha API to generate the results
+  const aa_complete = (params) => {
+
+    let token = process.env.REACT_APP_AA_API_KEY;
+
+    // define the search template
+    
+
+    
+
+    return new Promise((resolve, reject) => {
+      let xhr = new XMLHttpRequest();
+      xhr.open("POST", "https://api.aleph-alpha.de/complete");
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.setRequestHeader("Authorization", "Bearer " + token);
+      xhr.onload = function () {
+        if (this.status === 200) {
+          console.log(this.response);
+          resolve(this.response);
+        } else {
+          reject(new Error(this.statusText));
+        }
+      };
+      xhr.onerror = function () {
+        reject({
+            status: this.status,
+            statusText: xhr.statusText
+        });
+    };
+      xhr.send(JSON.stringify(params));
+    });
   };
 
   const getResults = async (term) => {
@@ -104,6 +208,7 @@ const AppContextProvider = ({ children }) => {
   const getMoreResults = async (numberOfPrevResults) => {
     let newResults = formatResults(await generateResults(searchTerm));
     let numberOfResults = numberOfPrevResults + newResults.length;
+    console.log(numberOfResults);
 
     setSearchResults(prev => [...prev, ...newResults]);
 
