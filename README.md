@@ -1,3 +1,6 @@
+# This is a FOrk of Goopt that implements the Aleph-Alpha Client
+
+
 <div align="center">
   
 ![](./src/assets/logo.png)
@@ -43,6 +46,7 @@ Make a file called ```.env.local``` in the root of the project and write a line 
 
 ```
 REACT_APP_OPENAI_API_KEY=YOUR_API_KEY_HERE
+REACT_APP_AA_API_KEY=YOUR_AA_API_KEY_HERE
 ```
 
 And finally install the project and its dependencies and start it:
