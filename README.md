@@ -1,4 +1,4 @@
-# This is a FOrk of Goopt that implements the Aleph-Alpha Client
+# This is a Fork of Goopt that implements the Aleph-Alpha Client
 
 
 <div align="center">
